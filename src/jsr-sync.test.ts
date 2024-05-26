@@ -70,14 +70,14 @@ describe('when git is not available', () => {
 	})
 })
 
-describe('when git is not clean', () => {
+describe('when git is not clean but no commit flag was provided', () => {
 	it('should disable git features and leave changes uncommitted', async () => {
 		const name = '@test/test'
 		await createMockDir({ name, gitInit: true, gitClean: false })
-		const { stdout, stderr } = await run(['start'])
+		const { stdout, stderr } = await run(['start', '--no-commit'])
 
 		expect(stderr.trim()).toBe('')
-		expect(stdout).toContain('disabling git features')
+		expect(stdout).not.toContain('disabling git features')
 		expect(stdout).toContain('Synced jsr config')
 
 		const { stdout: gitStatusStdout } = await execa('git', ['status'], { cwd: genPath })

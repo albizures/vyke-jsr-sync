@@ -3,7 +3,7 @@
 		@vyke/jsr-sync
 	</h1>
 </div>
-Functional and small implementation of Rust _*Result*_ type with some goodies to work with TypeScript inspired by ts-results with its own take. It simplifies error handling and enhances the management of asynchronous functions, offering a clean and efficient approach.
+Small cli tool to kept jsr config on sync with your package.json
 
 ## Installation
 ```sh

@@ -1,7 +1,14 @@
+import NodeFS from 'node:fs'
+import process from 'node:process'
+import NodePath from 'node:path'
 import { execSync } from 'node:child_process'
 import { Err, IsOk, capture } from '@vyke/results'
 
-export function isGitClean() {
+export function getIsGitInitialized() {
+	return capture(() => NodeFS.existsSync(NodePath.join(process.cwd(), '.git')))
+}
+
+export function getIsGitClean() {
 	return capture(() => execSync('git diff-index --quiet HEAD --', {
 		stdio: ['ignore', 'pipe', 'ignore'],
 	}))
@@ -34,6 +41,6 @@ export function getCurrentBranch() {
 export function gitCommit(message: string) {
 	return capture(() => {
 		execSync(`git add .`).toString().trim()
-		execSync(`git commit -m 'chore:${message}'`).toString().trim()
+		execSync(`git commit -m '${message}'`).toString().trim()
 	})
 }

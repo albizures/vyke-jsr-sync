@@ -1,7 +1,7 @@
 import c from 'picocolors'
 import * as p from '@clack/prompts'
 import { Empty, Err, IsErr, IsOk, Ok, type Result, intoErr } from '@vyke/results'
-import { getCurrentBranch, isGitClean as getIsGitClean, gitCommit } from './git'
+import { getCurrentBranch, getIsGitClean, getIsGitInitialized, gitCommit } from './git'
 import { formatJrsConfig, getSyncedJsrConfig, writeJsrConfigFile } from './pkg-to-jsr'
 
 export type CliRunOptions = {
@@ -130,19 +130,29 @@ function initGit(options: CliRunOptions) {
 
 	let gitDisabled = noCommit || dryRun
 
-	const isGitCleanResult = getIsGitClean()
+	if (gitDisabled) {
+		return {
+			gitDisabled,
+			isGitClean: true,
+		}
+	}
 
 	let isGitClean = false
 
-	if (!IsOk(isGitCleanResult)) {
+	const isGitInitialized = getIsGitInitialized()
+
+	if (!IsOk(isGitInitialized) || !isGitInitialized.value) {
 		p.log.warn(c.yellow('⚠ Unable to check for uncommitted changes, disabling git features'))
 
-		gitDisabled = true
-		isGitClean = true
+		return {
+			gitDisabled: true,
+			isGitClean: false,
+		}
 	}
-	else {
-		isGitClean = true
-	}
+
+	const isGitCleanResult = getIsGitClean()
+
+	isGitClean = IsOk(isGitCleanResult)
 
 	return {
 		gitDisabled,

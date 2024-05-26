@@ -50,7 +50,7 @@ const instance = yargs(hideBin(process.argv))
 
 			const result = await run({
 				...args,
-				noCommit: args['no-commit'],
+				noCommit: 'commit' in args ? !args.commit : undefined,
 				dryRun: args['dry-run'],
 			})
 
