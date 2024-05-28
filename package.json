@@ -19,6 +19,7 @@
 	},
 	"main": "./dist/index.cjs",
 	"types": "./dist/index.d.ts",
+	"bin": "./bin/cli.js",
 	"files": [
 		"dist"
 	],
@@ -34,9 +35,10 @@
 		"test:types": "tsc --noEmit",
 		"test:stub": "unbuild --stub",
 		"release:bump": "standard-version -t v",
+		"release:jsr-sync": "node ./bin/cli.js --section=exports",
 		"release:publish": "pnpm publish --access public",
 		"release:push-tags": "git push --follow-tags origin main",
-		"release": "run-s build test release:bump release:publish release:push-tags"
+		"release": "run-s build test release:bump release:jsr-sync release:publish release:push-tags"
 	},
 	"dependencies": {
 		"@clack/prompts": "^0.7.0",
