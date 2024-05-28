@@ -184,6 +184,12 @@ async function syncGit(options: CliRunOptions) {
 		return branchResult
 	}
 
+	const isGitCleanResult = getIsGitClean()
+
+	if (IsOk(isGitCleanResult) && isGitCleanResult.value) {
+		return Ok('No changes to commit')
+	}
+
 	const commitResult = gitCommit(`chore: sync jsr config`)
 	if (!IsOk(commitResult)) {
 		p.log.error(c.red('✘ Unable to commit changes'))
