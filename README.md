@@ -14,8 +14,6 @@ npm i @vyke/jsr-sync
 ```sh
 npx @vyke/jsr-sync start
 ```
-## API
-
 
 ## Others vyke projects
 - [Flowmodoro app by vyke](https://github.com/albizures/vyke-flowmodoro)

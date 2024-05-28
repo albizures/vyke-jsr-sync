@@ -4,7 +4,6 @@ import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs'
 import * as p from '@clack/prompts'
 import { IsOk, intoErr } from '@vyke/results'
-import { z } from 'zod'
 import { pkgJson } from './constants'
 import { run } from './run'
 
@@ -37,57 +36,6 @@ const instance = yargs(hideBin(process.argv))
 		description: 'Commit changes',
 		type: 'boolean',
 	})
-	// .command(
-	// 	'all',
-	// 	'Sync all jsr config',
-	// 	(args) => args
-	// 		.option('name', {
-	// 			alias: 'n',
-	// 			description: 'Use a different name for the project',
-	// 			type: 'string',
-	// 		})
-	// 		.option('force', {
-	// 			alias: 'f',
-	// 			description: 'Force sync to be applied',
-	// 			type: 'boolean',
-	// 		})
-	// 		.option('dry-run', {
-	// 			alias: 'd',
-	// 			description: 'Run a dry run of the sync',
-	// 			type: 'boolean',
-	// 		})
-	// 		.option('no-commit', {
-	// 			description: 'Do not commit changes',
-	// 			type: 'boolean',
-	// 		})
-	// 		.help(),
-	// 	async (args) => {
-	// 		header()
-
-// 		const result = await run({
-// 			...args,
-// 			noCommit: 'commit' in args ? !args.commit : undefined,
-// 			dryRun: args['dry-run'],
-// 		})
-
-// 		if (IsOk(result)) {
-// 			p.log.success(c.green('✔ Synced jsr config'))
-// 		}
-// 		else {
-// 			p.log.error(c.inverse(c.red(' Failed to sync jsr config ')))
-// 			p.log.error(c.red(`✘ ${intoErr(result, 'Failed to sync jsr config').value}`))
-// 			process.exit(1)
-// 		}
-// 	},
-// )
-// .command('version',
-// 	'Sync the version of the package',
-// 	(args) => args
-// 		.option(''),
-// 	async () => {
-
-	// 	},
-	// )
 	.showHelpOnFail(false)
 	.alias('h', 'help')
 	.version('version', pkgJson.version)

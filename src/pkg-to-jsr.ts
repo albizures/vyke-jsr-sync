@@ -2,7 +2,7 @@ import NodeFS from 'node:fs'
 import process from 'node:process'
 import NodePath from 'node:path'
 import type { Result } from '@vyke/results'
-import { Empty, Err, IsOk, Ok, capture, unwrap } from '@vyke/results'
+import { Empty, Err, IsOk, Ok, capture } from '@vyke/results'
 import { z } from 'zod'
 
 export type Section = 'version' | 'exports' | 'name'
