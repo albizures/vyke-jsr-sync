@@ -14,7 +14,7 @@ export function getIsGitClean() {
 			execSync('git diff-index --quiet HEAD --').toString().trim()
 		}
 		catch (error) {
-			console.log(error.stdout.toString())
+			console.error(error.stdout.toString())
 		}
 	})
 }
