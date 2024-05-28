@@ -9,7 +9,7 @@ export function getIsGitInitialized() {
 }
 
 export function getIsGitClean() {
-	return capture(() => execSync('git diff-index --quiet HEAD --').toString().trim())
+	return capture(() => execSync('git status').toString().includes('working tree clean'))
 }
 
 export function getCurrentBranch() {
