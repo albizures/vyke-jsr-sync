@@ -115,7 +115,6 @@ function initGit(options: CliRunOptions) {
 	}
 
 	const isGitCleanResult = getIsGitClean()
-	console.log('aaa', isGitCleanResult)
 
 	isGitClean = IsOk(isGitCleanResult)
 
@@ -169,8 +168,6 @@ async function syncGit(options: CliRunOptions) {
 	if (!gitEnable) {
 		return Ok('Git features disabled')
 	}
-
-	console.log(isGitClean)
 
 	const force = isGitClean
 		?	options.force ?? false
