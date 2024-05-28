@@ -19,7 +19,9 @@
 	},
 	"main": "./dist/index.cjs",
 	"types": "./dist/index.d.ts",
-	"bin": "./bin/cli.js",
+	"bin": {
+		"jsr-sync": "./bin/cli.js"
+	},
 	"files": [
 		"dist"
 	],
