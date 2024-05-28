@@ -1,8 +1,12 @@
 import c from 'picocolors'
 import * as p from '@clack/prompts'
-import { Empty, Err, IsErr, IsOk, Ok, type Result, intoErr } from '@vyke/results'
+import { Err, IsErr, IsOk, Ok, type Result, intoErr, to } from '@vyke/results'
 import { getCurrentBranch, getIsGitClean, getIsGitInitialized, gitCommit } from './git'
+import type { JsrConfig, Section } from './pkg-to-jsr'
 import { formatJrsConfig, getSyncedJsrConfig, writeJsrConfigFile } from './pkg-to-jsr'
+import { rootSola } from './sola'
+
+const sola = rootSola.withTag('run')
 
 export type CliRunOptions = {
 	/**
@@ -22,71 +26,45 @@ export type CliRunOptions = {
 	 */
 	verbose?: boolean
 	/**
-	 * Do not commit changes
+	 * Enable git features
 	 */
-	noCommit?: boolean
+	gitEnable?: boolean
 
+	/**
+	 * The sections to sync
+	 */
+	sections: Set<Section>
 }
 
 export type PromtResult = {
 	uncommittedConfirmed: boolean
 	name: string
 }
+const allSections = new Set<Section>(['version', 'exports', 'name'])
 
-export async function run(options: CliRunOptions = {}): Promise<Result<string, unknown>> {
+export async function run(options: CliRunOptions = { sections: allSections }): Promise<Result<string, unknown>> {
 	const {
+		sections,
 		name: customName,
-		force = false,
 		dryRun = false,
-		// verbose = false,
 	} = options
 
-	const updateResult = getSyncedJsrConfig()
-
-	const { gitDisabled, isGitClean } = initGit(options)
+	const updateResult = getSyncedJsrConfig(sections)
 
 	if (!IsOk(updateResult)) {
 		p.log.error(c.red(`✘ ${IsErr(updateResult) ? updateResult.value : 'Failed to get sync update'}`))
 		return intoErr(updateResult, 'Failed to get sync update')
 	}
+
 	const { value: update } = updateResult
 
-	let result: PromtResult = {
-		uncommittedConfirmed: force,
-		name: update.name,
+	const syncNameResult = await syncName(update.name, customName)
+
+	if (!IsOk(syncNameResult)) {
+		return intoErr(syncNameResult, 'Failed to sync name')
 	}
 
-	if (!force) {
-		result = await p.group({
-			uncommittedConfirmed: () => {
-				if (gitDisabled || isGitClean) { return Promise.resolve(true) }
-
-				return p.confirm({
-					initialValue: false,
-					message: 'There are uncommitted changes in the current repository, are you sure to continue?',
-				})
-			},
-			name: () => {
-				if (customName) { return Promise.resolve(customName) }
-				if (update.name.startsWith('@')) { return Promise.resolve(update.name) }
-
-				return p.text({
-					placeholder: `@example/${update.name}`,
-					message: 'Enter the name of the package',
-				})
-			},
-		})
-	}
-	else {
-		p.log.info(c.yellow('⚠ Skipping uncommitted changes check'))
-	}
-
-	if (!result.uncommittedConfirmed) {
-		p.log.error(c.red('✘ Sync aborted'))
-		return Err('Uncommitted changes')
-	}
-
-	update.name = result.name
+	update.name = syncNameResult.value
 
 	if (dryRun) {
 		p.log.info(c.green('Result of dry run:'))
@@ -95,27 +73,16 @@ export async function run(options: CliRunOptions = {}): Promise<Result<string, u
 		return Ok('Dry run completed')
 	}
 
-	const writeResult = writeJsrConfigFile(formatJrsConfig(update))
-	if (!IsOk(writeResult)) {
-		p.log.error(c.red('✘ Unable to write to jsr.json'))
+	const resultSyncFiles = syncFiles(update)
 
-		return intoErr(writeResult, 'Unknown error')
+	if (!IsOk(resultSyncFiles)) {
+		return intoErr(resultSyncFiles, 'Failed to sync files')
 	}
 
-	if (!gitDisabled) {
-		const branchResult = gitDisabled ? Empty() : getCurrentBranch()
+	const syncGitResult = await syncGit(options)
 
-		if (!force && IsErr(branchResult)) {
-			p.log.error(c.red('✘ Git commit aborted due to invalid branch detected'))
-			return branchResult
-		}
-
-		const commitResult = gitCommit(`chore: sync jsr config`)
-		if (!IsOk(commitResult)) {
-			p.log.error(c.red('✘ Unable to commit changes'))
-
-			return intoErr(commitResult, 'Unknown error')
-		}
+	if (!IsOk(syncGitResult)) {
+		return intoErr(syncGitResult, 'Failed to commit changes')
 	}
 
 	return Ok('jsr.json file in sync :)')
@@ -124,15 +91,12 @@ export async function run(options: CliRunOptions = {}): Promise<Result<string, u
 function initGit(options: CliRunOptions) {
 	const {
 		dryRun = false,
-		// verbose = false,
-		noCommit = false,
+		gitEnable = !dryRun,
 	} = options
 
-	let gitDisabled = noCommit || dryRun
-
-	if (gitDisabled) {
+	if (!gitEnable) {
 		return {
-			gitDisabled,
+			gitEnable,
 			isGitClean: true,
 		}
 	}
@@ -145,7 +109,7 @@ function initGit(options: CliRunOptions) {
 		p.log.warn(c.yellow('⚠ Unable to check for uncommitted changes, disabling git features'))
 
 		return {
-			gitDisabled: true,
+			gitEnable: false,
 			isGitClean: false,
 		}
 	}
@@ -155,7 +119,100 @@ function initGit(options: CliRunOptions) {
 	isGitClean = IsOk(isGitCleanResult)
 
 	return {
-		gitDisabled,
+		gitEnable,
 		isGitClean,
 	}
+}
+
+async function syncName(name: string, customName?: string): Promise<Result<string, string>> {
+	if (isValidName(customName)) {
+		return Ok(customName)
+	}
+
+	if (isValidName(name)) {
+		return Ok(name)
+	}
+
+	const response = await to(p.text({
+		placeholder: `@example/${name}`,
+		message: 'Enter the name of the package',
+	}))
+
+	if (IsOk(response)) {
+		return Ok(String(response.value))
+	}
+
+	sola.log(response)
+
+	return Err('Unable to get a valid name')
+}
+
+function isValidName(name?: string): name is string {
+	return Boolean(name && name.startsWith('@'))
+}
+
+function syncFiles(update: JsrConfig) {
+	const writeResult = writeJsrConfigFile(formatJrsConfig(update))
+	if (!IsOk(writeResult)) {
+		p.log.error(c.red('✘ Unable to write to jsr.json'))
+
+		return intoErr(writeResult, 'Unknown error')
+	}
+
+	return Ok('files synced')
+}
+
+async function syncGit(options: CliRunOptions) {
+	const { gitEnable, isGitClean } = initGit(options)
+
+	if (!gitEnable) {
+		return Ok('Git features disabled')
+	}
+
+	const force = isGitClean
+		?	options.force ?? false
+		: await shouldForceGitSync(options)
+
+	if (!isGitClean && !force) {
+		return Ok('Uncommitted changes')
+	}
+
+	const branchResult = getCurrentBranch()
+
+	if (!force && IsErr(branchResult)) {
+		p.log.error(c.red('✘ Git commit aborted due to invalid branch detected'))
+		return branchResult
+	}
+
+	const commitResult = gitCommit(`chore: sync jsr config`)
+	if (!IsOk(commitResult)) {
+		p.log.error(c.red('✘ Unable to commit changes'))
+
+		return intoErr(commitResult, 'Unknown error')
+	}
+
+	return Ok('Git synced')
+}
+
+async function shouldForceGitSync(options: CliRunOptions) {
+	const { force } = options
+
+	if (force === undefined) {
+		const response = await to(p.confirm({
+			initialValue: false,
+			message: 'There are uncommitted changes in the current repository, are you sure to continue?',
+		}))
+
+		if (!IsOk(response)) {
+			return false
+		}
+
+		if (typeof response.value === 'boolean') {
+			return response.value
+		}
+
+		return false
+	}
+
+	return force
 }

@@ -5,6 +5,8 @@ import type { Result } from '@vyke/results'
 import { Empty, Err, IsOk, Ok, capture, unwrap } from '@vyke/results'
 import { z } from 'zod'
 
+export type Section = 'version' | 'exports' | 'name'
+
 type Package = z.infer<typeof packageSchema>
 
 const packageSchema = z.object({
@@ -16,6 +18,13 @@ const packageSchema = z.object({
 			require: z.string().optional(),
 		})])).optional(),
 })
+type MaybeJsrConfig = z.infer<typeof jsrConfigSchema>
+
+const jsrConfigSchema = z.object({
+	name: z.string().optional(),
+	version: z.string().optional(),
+	exports: z.union([z.record(z.string(), z.string()), z.string()]).optional(),
+}).passthrough()
 
 function readPkg() {
 	const pkgPath = NodePath.resolve(process.cwd(), 'package.json')
@@ -28,6 +37,19 @@ function readPkg() {
 	catch (error) {
 		console.error(error)
 		return Err(error)
+	}
+}
+
+function readJsrConfig() {
+	const configPath = NodePath.resolve(process.cwd(), 'jsr.json')
+
+	try {
+		const config = NodeFS.readFileSync(configPath, 'utf8')
+
+		return Ok(jsrConfigSchema.parse(JSON.parse(config)))
+	}
+	catch (error) {
+		return Ok({} as MaybeJsrConfig)
 	}
 }
 
@@ -71,17 +93,23 @@ export function writeJsrConfigFile(content: string) {
 	return capture(() => NodeFS.writeFileSync(NodePath.resolve(process.cwd(), 'jsr.json'), content))
 }
 
-type JsrConfig = {
+export type JsrConfig = {
 	name: string
 	version: string
 	exports: Record<string, string>
 }
 
-export function getSyncedJsrConfig(): Result<JsrConfig, string> {
+export function getSyncedJsrConfig(sections: Set<Section>): Result<JsrConfig, string> {
 	const pkgResult = readPkg()
 
 	if (!IsOk(pkgResult)) {
 		return Err('Unable to read package.json')
+	}
+
+	const jsrConfigResult = readJsrConfig()
+
+	if (!IsOk(jsrConfigResult)) {
+		return Err('Unable to read jsr.json')
 	}
 
 	const { value: pkg } = pkgResult
@@ -92,9 +120,21 @@ export function getSyncedJsrConfig(): Result<JsrConfig, string> {
 		return Err('Invalid exports in package.json')
 	}
 
-	return Ok({
-		name: pkg.name,
-		version: pkg.version,
-		exports: exportsResult.value,
-	})
+	const update = {
+		...jsrConfigResult.value,
+	}
+
+	if (sections.has('version')) {
+		update.version = pkg.version
+	}
+
+	if (sections.has('name')) {
+		update.name = update.name || pkg.name
+	}
+
+	if (sections.has('exports')) {
+		update.exports = exportsResult.value
+	}
+
+	return Ok(update as JsrConfig)
 }

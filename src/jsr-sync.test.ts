@@ -3,6 +3,7 @@ import process from 'node:process'
 import { afterAll, describe, expect, it } from 'vitest'
 import { execa } from 'execa'
 import fs from 'fs-extra'
+import type { JsrConfig } from './pkg-to-jsr'
 
 const CLI_PATH = NodePath.join(__dirname, '../bin/cli.js')
 const genPath = NodePath.join(__dirname, '..', '.temp', randomStr())
@@ -24,10 +25,12 @@ type MockDirConfig = {
 	name: string
 	gitInit: boolean
 	gitClean: boolean
+	moreExports?: Record<string, string>
+	jsrConfig?: Partial<JsrConfig>
 }
 
 async function createMockDir(config: MockDirConfig) {
-	const { name, gitInit, gitClean } = config
+	const { name, gitInit, gitClean, moreExports = {}, jsrConfig } = config
 	await fs.rm(genPath, { recursive: true, force: true })
 	await fs.ensureDir(genPath)
 
@@ -35,7 +38,8 @@ async function createMockDir(config: MockDirConfig) {
 		name,
 		version: '1.0.0',
 		exports: {
-			'.': './src/index.js',
+			'.': './dist/index.js',
+			...moreExports,
 		},
 	}
 
@@ -53,6 +57,10 @@ async function createMockDir(config: MockDirConfig) {
 		})())
 	}
 
+	if (jsrConfig) {
+		steps.push(fs.writeJSON(NodePath.join(genPath, 'jsr.json'), jsrConfig))
+	}
+
 	await Promise.all(steps)
 };
 
@@ -62,7 +70,7 @@ describe('when git is not available', () => {
 	it('should disable git features and leave changes uncommitted', async () => {
 		const name = '@test/test'
 		await createMockDir({ name, gitInit: false, gitClean: false })
-		const { stdout, stderr } = await run(['start'])
+		const { stdout, stderr } = await run([])
 
 		expect(stderr.trim()).toBe('')
 		expect(stdout).toContain('disabling git features')
@@ -74,7 +82,7 @@ describe('when git is not clean but no commit flag was provided', () => {
 	it('should disable git features and leave changes uncommitted', async () => {
 		const name = '@test/test'
 		await createMockDir({ name, gitInit: true, gitClean: false })
-		const { stdout, stderr } = await run(['start', '--no-commit'])
+		const { stdout, stderr } = await run(['--git-enable', 'false'])
 
 		expect(stderr.trim()).toBe('')
 		expect(stdout).not.toContain('disabling git features')
@@ -86,11 +94,39 @@ describe('when git is not clean but no commit flag was provided', () => {
 	})
 })
 
+describe('when custom sections is specified', () => {
+	it('should update the specified sections to the jsr config', async () => {
+		await createMockDir({
+			name: '@test/test',
+			gitInit: true,
+			gitClean: true,
+			moreExports: { './another': './dist/another.ts' },
+			jsrConfig: {
+				name: '@test/custom',
+			},
+		})
+		const { stdout, stderr } = await run(['--section', 'exports', '--git-enable', 'false'])
+
+		const jsrContent: Record<string, any> = await fs.readJSON(NodePath.join(genPath, 'jsr.json'))
+
+		expect(jsrContent).toEqual({
+			name: '@test/custom',
+			// version: '1.0.0', // should not have version
+			exports: {
+				'.': './src/index.ts',
+				'./another': './src/another.ts',
+			},
+		})
+		expect(stderr.trim()).toBe('')
+		expect(stdout).toContain('Synced jsr config')
+	})
+})
+
 describe('when a name is provided', () => {
 	it('should use use the provided name insted of the package one', async () => {
 		const name = '@test/test'
 		await createMockDir({ name, gitInit: true, gitClean: true })
-		const { stdout, stderr } = await run(['start', '--name', '@test/custom'])
+		const { stdout, stderr } = await run(['--name', '@test/custom'])
 
 		const jsrContent: Record<string, any> = await fs.readJSON(NodePath.join(genPath, 'jsr.json'))
 
@@ -109,7 +145,7 @@ describe('when a name is provided', () => {
 it('should sync the config', async () => {
 	const name = '@test/test-2'
 	await createMockDir({ name, gitInit: true, gitClean: true })
-	const { stdout, stderr } = await run(['start'])
+	const { stdout, stderr } = await run([])
 
 	const jsrContent: Record<string, any> = await fs.readJSON(NodePath.join(genPath, 'jsr.json'))
 
