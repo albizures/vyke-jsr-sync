@@ -90,7 +90,7 @@ export function formatJrsConfig(content: JsrConfig) {
 }
 
 export function writeJsrConfigFile(content: string) {
-	return capture(() => NodeFS.writeFileSync(NodePath.resolve(process.cwd(), 'jsr.json'), content))
+	return capture(() => NodeFS.writeFileSync(NodePath.resolve(process.cwd(), 'jsr.json'), `${content}\n`))
 }
 
 export type JsrConfig = {
