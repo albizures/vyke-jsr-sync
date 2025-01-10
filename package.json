@@ -1,7 +1,7 @@
 {
 	"name": "@vyke/jsr-sync",
 	"type": "module",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Small cli tool to keep jsr config on sync with your package.json",
 	"author": "Jose Albizures <jose@albizures.com> (https://albizures.com/)",
 	"license": "MIT",
