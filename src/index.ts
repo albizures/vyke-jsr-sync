@@ -3,7 +3,7 @@ import c from 'picocolors'
 import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs'
 import * as p from '@clack/prompts'
-import { IsOk, intoErr } from '@vyke/results'
+import { isOk } from '@vyke/results/result'
 import { pkgJson } from './constants'
 import { run } from './run'
 
@@ -69,12 +69,12 @@ async function start() {
 		),
 	})
 
-	if (IsOk(result)) {
+	if (isOk(result)) {
 		p.log.success(c.green('✔ Synced jsr config'))
 	}
 	else {
 		p.log.error(c.inverse(c.red(' Failed to sync jsr config ')))
-		p.log.error(c.red(`✘ ${intoErr(result, 'Failed to sync jsr config').value}`))
+		p.log.error(c.red(`✘ ${result.error}`))
 		process.exit(1)
 	}
 }

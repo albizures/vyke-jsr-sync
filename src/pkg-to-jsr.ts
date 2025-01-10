@@ -2,7 +2,7 @@ import NodeFS from 'node:fs'
 import process from 'node:process'
 import NodePath from 'node:path'
 import type { Result } from '@vyke/results'
-import { Empty, Err, IsOk, Ok, capture } from '@vyke/results'
+import { Err, Ok, capture, isOk } from '@vyke/results/result'
 import { z } from 'zod'
 
 export type Section = 'version' | 'exports' | 'name'
@@ -55,7 +55,7 @@ function readJsrConfig() {
 
 function getExports(pkg: Package) {
 	if (!pkg.exports) {
-		return Empty()
+		return Err('No exports in package.json')
 	}
 
 	const exports: Record<string, string> = {}
@@ -102,13 +102,13 @@ export type JsrConfig = {
 export function getSyncedJsrConfig(sections: Set<Section>): Result<JsrConfig, string> {
 	const pkgResult = readPkg()
 
-	if (!IsOk(pkgResult)) {
+	if (!isOk(pkgResult)) {
 		return Err('Unable to read package.json')
 	}
 
 	const jsrConfigResult = readJsrConfig()
 
-	if (!IsOk(jsrConfigResult)) {
+	if (!isOk(jsrConfigResult)) {
 		return Err('Unable to read jsr.json')
 	}
 
@@ -116,7 +116,7 @@ export function getSyncedJsrConfig(sections: Set<Section>): Result<JsrConfig, st
 
 	const exportsResult = getExports(pkg)
 
-	if (!IsOk(exportsResult)) {
+	if (!isOk(exportsResult)) {
 		return Err('Invalid exports in package.json')
 	}
 

@@ -1,6 +1,7 @@
 import c from 'picocolors'
 import * as p from '@clack/prompts'
-import { Err, IsErr, IsOk, Ok, type Result, intoErr, to } from '@vyke/results'
+import type { Result } from '@vyke/results/result'
+import { Err, Ok, isErr, isOk, to } from '@vyke/results/result'
 import { getCurrentBranch, getIsGitClean, getIsGitInitialized, gitCommit } from './git'
 import type { JsrConfig, Section } from './pkg-to-jsr'
 import { formatJrsConfig, getSyncedJsrConfig, writeJsrConfigFile } from './pkg-to-jsr'
@@ -51,17 +52,17 @@ export async function run(options: CliRunOptions = { sections: allSections }): P
 
 	const updateResult = getSyncedJsrConfig(sections)
 
-	if (!IsOk(updateResult)) {
-		p.log.error(c.red(`✘ ${IsErr(updateResult) ? updateResult.value : 'Failed to get sync update'}`))
-		return intoErr(updateResult, 'Failed to get sync update')
+	if (!isOk(updateResult)) {
+		p.log.error(c.red(`✘ ${updateResult.error || 'Failed to get sync update'}`))
+		return Err(updateResult.error)
 	}
 
 	const { value: update } = updateResult
 
 	const syncNameResult = await syncName(update.name, customName)
 
-	if (!IsOk(syncNameResult)) {
-		return intoErr(syncNameResult, 'Failed to sync name')
+	if (!isOk(syncNameResult)) {
+		return Err(syncNameResult)
 	}
 
 	update.name = syncNameResult.value
@@ -75,14 +76,14 @@ export async function run(options: CliRunOptions = { sections: allSections }): P
 
 	const resultSyncFiles = syncFiles(update)
 
-	if (!IsOk(resultSyncFiles)) {
-		return intoErr(resultSyncFiles, 'Failed to sync files')
+	if (!isOk(resultSyncFiles)) {
+		return Err(resultSyncFiles, 'Failed to sync files')
 	}
 
 	const syncGitResult = await syncGit(options)
 
-	if (!IsOk(syncGitResult)) {
-		return intoErr(syncGitResult, 'Failed to commit changes')
+	if (!isOk(syncGitResult)) {
+		return Err(syncGitResult, 'Failed to commit changes')
 	}
 
 	return Ok('jsr.json file in sync :)')
@@ -105,7 +106,7 @@ function initGit(options: CliRunOptions) {
 
 	const isGitInitialized = getIsGitInitialized()
 
-	if (!IsOk(isGitInitialized) || !isGitInitialized.value) {
+	if (!isOk(isGitInitialized) || !isGitInitialized.value) {
 		p.log.warn(c.yellow('⚠ Unable to check for uncommitted changes, disabling git features'))
 
 		return {
@@ -116,7 +117,7 @@ function initGit(options: CliRunOptions) {
 
 	const isGitCleanResult = getIsGitClean()
 
-	isGitClean = IsOk(isGitCleanResult)
+	isGitClean = isOk(isGitCleanResult)
 
 	return {
 		gitEnable,
@@ -138,7 +139,7 @@ async function syncName(name: string, customName?: string): Promise<Result<strin
 		message: 'Enter the name of the package',
 	}))
 
-	if (IsOk(response)) {
+	if (isOk(response)) {
 		return Ok(String(response.value))
 	}
 
@@ -153,10 +154,10 @@ function isValidName(name?: string): name is string {
 
 function syncFiles(update: JsrConfig) {
 	const writeResult = writeJsrConfigFile(formatJrsConfig(update))
-	if (!IsOk(writeResult)) {
+	if (!isOk(writeResult)) {
 		p.log.error(c.red('✘ Unable to write to jsr.json'))
 
-		return intoErr(writeResult, 'Unknown error')
+		return Err(writeResult, 'Unknown error')
 	}
 
 	return Ok('files synced')
@@ -179,22 +180,22 @@ async function syncGit(options: CliRunOptions) {
 
 	const branchResult = getCurrentBranch()
 
-	if (!force && IsErr(branchResult)) {
+	if (!force && isErr(branchResult)) {
 		p.log.error(c.red('✘ Git commit aborted due to invalid branch detected'))
 		return branchResult
 	}
 
 	const isGitCleanResult = getIsGitClean()
 
-	if (IsOk(isGitCleanResult) && isGitCleanResult.value) {
+	if (isOk(isGitCleanResult) && isGitCleanResult.value) {
 		return Ok('No changes to commit')
 	}
 
 	const commitResult = gitCommit(`chore: sync jsr config`)
-	if (!IsOk(commitResult)) {
+	if (!isOk(commitResult)) {
 		p.log.error(c.red('✘ Unable to commit changes'))
 
-		return intoErr(commitResult, 'Unknown error')
+		return Err(commitResult.error, 'Unknown error')
 	}
 
 	return Ok('Git synced')
@@ -209,7 +210,7 @@ async function shouldForceGitSync(options: CliRunOptions) {
 			message: 'There are uncommitted changes in the current repository, are you sure to continue?',
 		}))
 
-		if (!IsOk(response)) {
+		if (!isOk(response)) {
 			return false
 		}
 
