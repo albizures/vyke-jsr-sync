@@ -12,8 +12,8 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0
       '@vyke/results':
-        specifier: npm:@jsr/vyke__results@^0.3.4
-        version: '@jsr/vyke__results@0.3.4'
+        specifier: ^0.4.3
+        version: 0.4.3
       '@vyke/sola':
         specifier: ^0.0.6
         version: 0.0.6
@@ -574,9 +574,6 @@ packages:
     resolution: {integrity: sha512-f5DRIOZf7wxogefH03RjMPMdBF7ADTWUMoOs9kaJo06EfwF+aFhMZMDZxHg/Xe12hptN9xoZjGso2fdjapBRIA==}
     engines: {node: '>=10'}
 
-  '@jsr/vyke__results@0.3.4':
-    resolution: {integrity: sha512-v48/ecqqY8kgydkr3pNryZu+LZ0xr39Ia8E/AFXViKBqQyou8s4NXOw0895lpjsJ3oLxuMRpfMZ9k/LjTm1IeA==, tarball: https://npm.jsr.io/~/11/@jsr/vyke__results/0.3.4.tgz}
-
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -916,6 +913,9 @@ packages:
 
   '@vyke/results@0.2.3':
     resolution: {integrity: sha512-/D88KWDNrsOWeqE9crdT5m9NqLoTAJfqJ4dWcQ2yXad7NrtwhvRRWC85/aGAvCCYUEAt34nomFqGk6QCYo4cmA==}
+
+  '@vyke/results@0.4.3':
+    resolution: {integrity: sha512-8xZRoUnwEfjOKKV5yNJwp2K0UnnohFQztrKAz7U8hq5F79zjsNhj2WtkplrNqo+cgzSBFCfZwZGEt5d1yW1gyA==}
 
   '@vyke/sola@0.0.6':
     resolution: {integrity: sha512-1PEJ9JaXNSnaMHE8pxhMgyjOvSgHaWd9ZWtTFvupATT6C3IGnmQxv/1lKnH+L6VKooMoxFEdAZ4ACNfKBtm/Iw==}
@@ -3955,8 +3955,6 @@ snapshots:
       string-argv: 0.3.2
       type-detect: 4.0.8
 
-  '@jsr/vyke__results@0.3.4': {}
-
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -4324,6 +4322,8 @@ snapshots:
   '@vue/shared@3.4.27': {}
 
   '@vyke/results@0.2.3': {}
+
+  '@vyke/results@0.4.3': {}
 
   '@vyke/sola@0.0.6': {}
 
